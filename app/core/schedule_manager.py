@@ -1,12 +1,13 @@
 from datetime import date, time, timedelta
 from typing import List, Dict
 from app.models.schedule import Shift, Employee
+from app.core.timeutil import today_kst
 import app.core.database as db
 
 
 class ScheduleManager:
     def get_todays_shifts(self) -> List[Shift]:
-        return db.get_shifts_for_date(date.today())
+        return db.get_shifts_for_date(today_kst())
 
     def get_monthly_shifts(self, year: int, month: int) -> List[Shift]:
         return db.get_shifts_for_month(year, month)

@@ -3,6 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import app.core.database as db
 from app.core.schedule_manager import get_manager
+from app.core.timeutil import now_kst, today_kst
 
 SHIFT_GROUPS = {
     "오전조": {"hours": {6, 7, 8},    "emoji": "🌅", "color": "#f59e0b"},
@@ -39,8 +40,8 @@ def render():
         height=0,
     )
 
-    now   = datetime.now()
-    today = date.today()
+    now   = now_kst()
+    today = today_kst()
     wd    = WEEKDAYS[today.weekday()]
 
     # ── 데이터 ──────────────────────────────────────────────────────

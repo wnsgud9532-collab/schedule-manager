@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from plyer import notification
 
 from app.core.schedule_manager import get_manager
+from app.core.timeutil import now_kst
 
 _scheduled_timers: list[threading.Timer] = []
 
@@ -21,7 +22,7 @@ def schedule_all_today_alarms(minutes_before: int):
         timer.cancel()
     _scheduled_timers.clear()
 
-    now = datetime.now()
+    now = now_kst()
     for shift in get_manager().get_todays_shifts():
         fire_at = datetime.combine(shift.date, shift.start_time) - timedelta(minutes=minutes_before)
         delay = (fire_at - now).total_seconds()

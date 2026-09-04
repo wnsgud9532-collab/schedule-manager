@@ -5,6 +5,7 @@ from datetime import date
 import streamlit as st
 from app.core.schedule_manager import get_manager
 from app.core.excel_parser import parse_excel_file
+from app.core.timeutil import today_kst
 
 
 def _detect_year_month(filename: str):
@@ -30,7 +31,7 @@ FORMAT_OPTIONS = {
 def render():
     st.markdown("## 📂 엑셀 가져오기")
 
-    today = date.today()
+    today = today_kst()
 
     uploaded = st.file_uploader(
         "엑셀 파일 선택 (.xlsx / .xls)",
