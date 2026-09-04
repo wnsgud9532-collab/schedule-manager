@@ -168,6 +168,11 @@ with st.sidebar:
     labels   = [lbl for lbl, _ in NAV_ITEMS]
     page_map = {lbl: pid for lbl, pid in NAV_ITEMS}
 
+    # 링크로 처음 접속했을 때(새 세션) 대시보드 대신 주간 근무표를 먼저 보여줌.
+    # 이후 다른 메뉴를 클릭하면 그 선택이 세션 동안 유지됨.
+    if "main_nav" not in st.session_state:
+        st.session_state.main_nav = "📋  주간 근무표"
+
     selected = st.radio("nav", labels, label_visibility="collapsed", key="main_nav")
 
     st.divider()
