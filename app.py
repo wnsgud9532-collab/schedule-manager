@@ -91,9 +91,12 @@ div[data-testid="stMetricLabel"] { font-size: 0.9rem; }
    모바일  ≤ 640px
 ══════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-    /* 본문 여백 최소화 */
-    .main .block-container {
-        padding: 0.6rem 0.6rem 4rem !important;
+    /* 본문 여백 최소화 (제목 위 빈 공간 축소 — 상단 고정 툴바에 안 가릴 만큼만 남김) */
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 4.5rem !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
+        padding-bottom: 4rem !important;
         max-width: 100% !important;
     }
 
