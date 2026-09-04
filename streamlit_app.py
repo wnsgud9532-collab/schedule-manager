@@ -1,83 +1,11 @@
-import streamlit as st
-import app.core.database as db
+"""Streamlit Cloud가 기본으로 찾는 진입점 파일명(streamlit_app.py)에 맞추기 위한 래퍼.
 
-st.set_page_config(
-    page_title="근무 스케쥴러",
-    page_icon="📅",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+실제 앱 코드는 app.py 하나만 유지한다. (예전엔 이 파일에 app.py와 별개로
+오래된 사본 코드가 들어있었는데, app.py만 계속 업데이트되고 이 파일은
+그대로 방치되면서 로컬(run.bat → app.py)과 실제 배포본(Streamlit Cloud →
+streamlit_app.py)이 서로 다른 코드를 실행하는 버그가 있었음 — 주간 근무표
+탭 추가, 기본 페이지 변경 등 최근 수정사항이 배포본에 반영되지 않던 원인.)
+"""
+import runpy
 
-@st.cache_resource
-def _init():
-    db.initialize_db()
-    return True
-
-_init()
-
-st.markdown("""
-<style>
-[data-testid="stSidebar"] {
-    background-color: #1e293b;
-}
-[data-testid="stSidebar"] h1,
-[data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3,
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] div {
-    color: #e2e8f0 !important;
-}
-[data-testid="stSidebar"] .stRadio > label {
-    color: #e2e8f0 !important;
-}
-[data-testid="stSidebar"] hr {
-    border-color: #334155;
-}
-[data-testid="stSidebarNavLink"] {
-    color: #e2e8f0 !important;
-}
-div[data-testid="stMetricValue"] {
-    font-size: 1.6rem;
-    font-weight: 700;
-}
-</style>
-""", unsafe_allow_html=True)
-
-NAV_ITEMS = [
-    ("🏠  대시보드",    "dashboard"),
-    ("📅  월간 캘린더", "monthly"),
-    # ("🔔  알람 설정",   "alarms"),  # 임시 비활성화 (추후 재사용 예정, 코드는 유지)
-    ("📂  엑셀 가져오기", "import"),
-    ("⚙️  설정",        "settings"),
-]
-
-with st.sidebar:
-    st.markdown("## 근무 스케쥴러")
-    st.caption("Schedule Manager")
-    st.divider()
-
-    labels  = [lbl for lbl, _ in NAV_ITEMS]
-    page_map = {lbl: pid for lbl, pid in NAV_ITEMS}
-
-    selected = st.radio("nav", labels, label_visibility="collapsed", key="main_nav")
-
-    st.divider()
-    st.caption("v1.0.0")
-    st.caption("Developed by 박준형")
-
-page = page_map[selected]
-
-if page == "dashboard":
-    from app.web.pages.dashboard import render
-elif page == "monthly":
-    from app.web.pages.monthly import render
-elif page == "alarms":
-    from app.web.pages.alarms import render
-elif page == "import":
-    from app.web.pages.import_page import render
-else:
-    from app.web.pages.settings_page import render
-
-render()
+runpy.run_path("app.py", run_name="__main__")
