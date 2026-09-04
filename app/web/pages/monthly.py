@@ -3,6 +3,7 @@ from datetime import date
 import streamlit as st
 import app.core.database as db
 from app.core.schedule_manager import get_manager
+from app.core.timeutil import today_kst
 from app.models.schedule import Shift
 
 _GROUP_STYLES = {
@@ -40,6 +41,7 @@ _MCAL_STYLE = """
 .mc-cnt{font-weight:400;color:#94a3b8;font-size:7.5px;}
 .mc-badge{display:inline-block;color:#fff;border-radius:3px;padding:1px 2px;font-size:8px;
           line-height:1.3;font-weight:600;}
+.mc-time-full{color:#fff;font-weight:700;font-size:9px;text-align:center;margin-top:2px;}
 .mc-off{color:#94a3b8;font-size:8px;}
 .mc-tag{display:block;color:#fff;border-radius:3px;padding:0 2px;margin:1px 0;font-size:7.5px;
         line-height:1.4;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -52,6 +54,7 @@ _MCAL_STYLE = """
     .mc-day{font-size:13px;margin-bottom:4px;}
     .mc-cnt{font-size:11px;}
     .mc-badge{padding:3px 5px;font-size:11px;line-height:1.5;}
+    .mc-time-full{font-size:12px;margin-top:6px;}
     .mc-off{font-size:11px;}
     .mc-tag{padding:2px 4px;margin:1px 0;font-size:10px;line-height:1.5;}
     .mc-more{font-size:10px;margin-top:1px;}
@@ -62,7 +65,7 @@ _MCAL_STYLE = """
 
 def _personal_html(year: int, month: int, emp_name: str, day_map: dict):
     cal   = calendar.monthcalendar(year, month)
-    today = date.today()
+    today = today_kst()
     work_days, off_days, total_h = 0, 0, 0.0
 
     rows = '<div class="scroll-x">' + _MCAL_STYLE + '<table class="mcal">'
@@ -84,19 +87,24 @@ def _personal_html(year: int, month: int, emp_name: str, day_map: dict):
             is_sat = i == 5
             is_sun = i == 6
 
-            bg      = "#dbeafe" if is_td else "white"
-            day_col = "#1d4ed8" if is_td else "#ef4444" if is_sun else "#3b82f6" if is_sat else "#374151"
-            rows += f'<td style="background:{bg};"><div class="mc-day" style="color:{day_col};">{day}</div>'
             if shifts:
-                s     = shifts[0]
-                color = _group_color(s)
-                rows += f'<span class="mc-badge" style="background:{color};">{_compact_time(s)}</span>'
+                s        = shifts[0]
+                cell_bg  = _group_color(s)
+                day_col  = "#ffffff"
+                body     = f'<div class="mc-time-full">{_compact_time(s)}</div>'
                 work_days += 1
                 total_h   += s.duration_hours()
             else:
-                rows += '<span class="mc-off">휴무</span>'
+                cell_bg = "#dbeafe" if is_td else "white"
+                day_col = "#1d4ed8" if is_td else "#ef4444" if is_sun else "#3b82f6" if is_sat else "#374151"
+                body    = '<span class="mc-off">휴무</span>'
                 off_days += 1
-            rows += "</td>"
+
+            today_ring = "box-shadow:inset 0 0 0 2px #1d4ed8;" if is_td else ""
+            rows += (
+                f'<td style="background:{cell_bg};{today_ring}">'
+                f'<div class="mc-day" style="color:{day_col};">{day}</div>{body}</td>'
+            )
         rows += "</tr>"
 
     rows += "</table></div>"
@@ -105,7 +113,7 @@ def _personal_html(year: int, month: int, emp_name: str, day_map: dict):
 
 def _all_html(year: int, month: int, day_map: dict):
     cal   = calendar.monthcalendar(year, month)
-    today = date.today()
+    today = today_kst()
 
     rows = '<div class="scroll-x">' + _MCAL_STYLE + '<table class="mcal">'
     rows += "<tr>"
@@ -148,7 +156,7 @@ def _all_html(year: int, month: int, day_map: dict):
 def render():
     st.markdown("## 📅 월간 캘린더")
 
-    today = date.today()
+    today = today_kst()
     if "monthly_year"  not in st.session_state:
         st.session_state.monthly_year  = today.year
     if "monthly_month" not in st.session_state:

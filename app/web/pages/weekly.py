@@ -1,6 +1,7 @@
 from datetime import date, time, timedelta
 import streamlit as st
 from app.core.schedule_manager import get_manager
+from app.core.timeutil import today_kst
 
 WEEKDAYS   = ["월", "화", "수", "목", "금", "토", "일"]
 TIME_SLOTS = [6, 7, 8, 13, 15, 16, 22]
@@ -134,7 +135,7 @@ def _edit_dialog():
             st.info("등록된 근무자가 없습니다. 먼저 엑셀을 가져와주세요.")
         else:
             name   = st.selectbox("근무자", employees, key="editshift_name")
-            target = st.date_input("날짜", value=date.today(), key="editshift_date")
+            target = st.date_input("날짜", value=today_kst(), key="editshift_date")
 
             current = mgr.get_shift_for_employee(name, target)
 
@@ -213,7 +214,7 @@ def _edit_dialog():
 def render():
     st.markdown("## 📋 주간 근무표")
 
-    today = date.today()
+    today = today_kst()
     if "weekly_start" not in st.session_state:
         st.session_state.weekly_start = _week_monday(today)
 

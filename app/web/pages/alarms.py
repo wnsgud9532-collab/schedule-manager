@@ -2,6 +2,7 @@ from datetime import date, datetime
 import streamlit as st
 import app.core.database as db
 from app.core.schedule_manager import get_manager
+from app.core.timeutil import now_kst, today_kst
 from app.core import notifier
 
 
@@ -43,11 +44,11 @@ def render():
 
     # ── 오늘 스케쥴 ─────────────────────────────────────────────────
     st.divider()
-    st.markdown(f"### 📅 오늘 ({date.today().strftime('%m월 %d일')}) 스케쥴")
+    st.markdown(f"### 📅 오늘 ({today_kst().strftime('%m월 %d일')}) 스케쥴")
 
     mgr    = get_manager()
     shifts = mgr.get_todays_shifts()
-    now    = datetime.now()
+    now    = now_kst()
 
     if not shifts:
         st.caption("오늘 등록된 스케쥴이 없습니다.")
