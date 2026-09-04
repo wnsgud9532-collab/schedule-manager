@@ -91,62 +91,66 @@ def render():
     # ── 미출근만 보기 토글 ────────────────────────────────────────────
     only_absent = st.toggle("📍 미출근만 보기 (현재 근무 시간대)", value=False, key="only_absent")
 
-    # ── 근무자 행 생성 ────────────────────────────────────────────────
-    rows = []
-    for gname, ginfo in SHIFT_GROUPS.items():
+    # ── 근무자 카드 (조별 가로 배치: 오전 | 오후 | 야간) ────────────────
+    any_rows = False
+    group_cols = st.columns(len(SHIFT_GROUPS))
+    for col, (gname, ginfo) in zip(group_cols, SHIFT_GROUPS.items()):
+        group_rows = []
         for s in sorted(grouped.get(gname, []), key=lambda x: x.start_time):
             is_active = s.is_active_at(now)
             if only_absent and not is_active:
                 continue
             status_text, status_color = _get_status(s, now)
-            rows.append((gname, ginfo, s, is_active, status_text, status_color))
+            group_rows.append((s, is_active, status_text, status_color))
 
-    # ── HTML 컴팩트 테이블 ────────────────────────────────────────────
-    tbl = (
-        '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">'
-        '<thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">'
-        '<th style="padding:5px 10px;text-align:left;color:#64748b;font-weight:600;width:13%;">조</th>'
-        '<th style="padding:5px 10px;text-align:left;color:#64748b;font-weight:600;width:22%;">이름</th>'
-        '<th style="padding:5px 10px;text-align:left;color:#64748b;font-weight:600;width:30%;">근무시간</th>'
-        '<th style="padding:5px 10px;text-align:left;color:#64748b;font-weight:600;width:35%;">상태</th>'
-        '</tr></thead><tbody>'
-    )
-
-    prev_group = None
-    for gname, ginfo, s, is_active, status_text, status_color in rows:
-        if gname != prev_group:
-            tbl += (
-                f'<tr style="background:{ginfo["color"]}12;">'
-                f'<td colspan="4" style="padding:4px 10px;font-size:11px;font-weight:700;'
-                f'color:{ginfo["color"]};letter-spacing:0.04em;">'
+        with col:
+            st.markdown(
+                f'<div style="background:{ginfo["color"]}12;border:1px solid {ginfo["color"]}30;'
+                f'border-bottom:none;border-radius:8px 8px 0 0;padding:5px 10px;'
+                f'font-size:11.5px;font-weight:700;color:{ginfo["color"]};letter-spacing:0.04em;">'
                 f'{ginfo["emoji"]} {gname}&nbsp;&nbsp;'
-                f'<span style="font-weight:400;color:#94a3b8;">{len(grouped[gname])}명</span>'
-                f'</td></tr>'
+                f'<span style="font-weight:400;color:#94a3b8;">{len(grouped.get(gname, []))}명</span>'
+                f'</div>',
+                unsafe_allow_html=True,
             )
-            prev_group = gname
 
-        row_bg  = "#fff1f2" if is_active else "#ffffff"
-        row_bdr = "#fecdd3" if is_active else "#f1f5f9"
-        absent_dot = (
-            '<span style="color:#ef4444;font-size:10px;margin-left:4px;">●</span>'
-            if is_active else ""
-        )
-        tbl += (
-            f'<tr style="background:{row_bg};border-bottom:1px solid {row_bdr};">'
-            f'<td style="padding:4px 10px;color:{ginfo["color"]};font-size:11px;font-weight:600;">'
-            f'{ginfo["emoji"]}</td>'
-            f'<td style="padding:4px 10px;font-weight:600;color:#0f172a;">'
-            f'{s.employee_name}{absent_dot}</td>'
-            f'<td style="padding:4px 10px;color:#475569;font-family:monospace;font-size:12px;">'
-            f'{s.time_range_str()}</td>'
-            f'<td style="padding:4px 10px;color:{status_color};font-weight:600;font-size:11.5px;">'
-            f'{status_text}</td>'
-            f'</tr>'
-        )
+            if not group_rows:
+                st.markdown(
+                    f'<div style="padding:14px 10px;text-align:center;color:#94a3b8;'
+                    f'font-size:11.5px;border:1px solid {ginfo["color"]}30;border-radius:0 0 8px 8px;">'
+                    f'표시할 인원 없음</div>',
+                    unsafe_allow_html=True,
+                )
+                continue
 
-    tbl += "</tbody></table>"
+            any_rows = True
+            tbl = (
+                f'<table style="width:100%;border-collapse:collapse;font-size:12px;'
+                f'border:1px solid {ginfo["color"]}30;border-top:none;border-radius:0 0 8px 8px;'
+                f'overflow:hidden;"><tbody>'
+            )
+            for s, is_active, status_text, status_color in group_rows:
+                row_bg  = "#fff1f2" if is_active else "#ffffff"
+                row_bdr = "#fecdd3" if is_active else "#f1f5f9"
+                absent_dot = (
+                    '<span style="color:#ef4444;font-size:10px;margin-left:3px;">●</span>'
+                    if is_active else ""
+                )
+                tbl += (
+                    f'<tr style="background:{row_bg};border-bottom:1px solid {row_bdr};">'
+                    f'<td style="padding:4px 8px;font-weight:600;color:#0f172a;white-space:nowrap;">'
+                    f'{s.employee_name}{absent_dot}</td>'
+                    f'<td style="padding:4px 8px;color:#475569;font-family:monospace;'
+                    f'font-size:11px;white-space:nowrap;text-align:right;">'
+                    f'{s.time_range_str()}</td>'
+                    f'</tr>'
+                    f'<tr style="background:{row_bg};border-bottom:1px solid {row_bdr};">'
+                    f'<td colspan="2" style="padding:0 8px 4px;color:{status_color};'
+                    f'font-weight:600;font-size:10.5px;">{status_text}</td>'
+                    f'</tr>'
+                )
+            tbl += "</tbody></table>"
+            st.markdown(tbl, unsafe_allow_html=True)
 
-    if rows:
-        st.markdown(tbl, unsafe_allow_html=True)
-    else:
+    if not any_rows:
         st.info("현재 근무 중인 직원이 없습니다." if only_absent else "오늘 근무 데이터가 없습니다.")

@@ -110,6 +110,17 @@ def get_shifts_for_month(year: int, month: int) -> List[Shift]:
     return [_row_to_shift(r) for r in rows]
 
 
+def get_shifts_for_employee_date(employee_name: str, target_date: date) -> List[Shift]:
+    with get_connection() as conn:
+        rows = conn.execute("""
+            SELECT s.id, s.employee_id, e.name, s.shift_date, s.start_time, s.end_time, s.note
+            FROM shifts s JOIN employees e ON s.employee_id = e.id
+            WHERE e.name = ? AND s.shift_date = ? AND s.note != '삭제'
+            ORDER BY s.start_time
+        """, (employee_name, target_date.isoformat())).fetchall()
+    return [_row_to_shift(r) for r in rows]
+
+
 def get_all_employees() -> List[Employee]:
     with get_connection() as conn:
         rows = conn.execute("""
@@ -196,6 +207,31 @@ def restore_all_originals() -> int:
             WHERE original_start_time IS NOT NULL
         """)
         return conn.execute("SELECT changes() as n").fetchone()["n"]
+
+
+def get_modified_shifts() -> List[dict]:
+    """수정되었거나 휴무 처리된(원본이 보존된) 근무 전체 반환 (수정 기록)."""
+    with get_connection() as conn:
+        rows = conn.execute("""
+            SELECT s.id, e.name AS employee_name, s.shift_date, s.start_time, s.end_time, s.note,
+                   s.original_start_time, s.original_end_time
+            FROM shifts s JOIN employees e ON s.employee_id = e.id
+            WHERE s.original_start_time IS NOT NULL
+            ORDER BY s.shift_date DESC, e.name
+        """).fetchall()
+    return [
+        {
+            "id": r["id"],
+            "employee_name": r["employee_name"],
+            "date": date.fromisoformat(r["shift_date"]),
+            "start_time": r["start_time"],
+            "end_time": r["end_time"],
+            "note": r["note"] or "",
+            "original_start_time": r["original_start_time"],
+            "original_end_time": r["original_end_time"],
+        }
+        for r in rows
+    ]
 
 
 def delete_shift(shift_id: int):

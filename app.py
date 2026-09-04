@@ -57,8 +57,8 @@ div[data-testid="stMetricLabel"] { font-size: 0.9rem; }
 [data-testid="stSidebar"] .stRadio > label { color: #e2e8f0 !important; }
 [data-testid="stSidebar"] hr { border-color: #334155; }
 [data-testid="stSidebarNavLink"] { color: #e2e8f0 !important; }
-/* 사이드바 라디오 터치 타깃 */
-[data-testid="stSidebar"] .stRadio label {
+/* 사이드바 라디오 터치 타깃 (옵션 항목에만 적용 — 위젯 자체 라벨("nav")은 제외) */
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
     padding: 0.45rem 0 !important;
     min-height: 2.5rem;
     display: flex;
@@ -152,7 +152,7 @@ NAV_ITEMS = [
     ("🏠  대시보드",      "dashboard"),
     ("📅  월간 캘린더",   "monthly"),
     ("📋  주간 근무표",   "weekly"),
-    ("🔔  알람 설정",     "alarms"),
+    # ("🔔  알람 설정",     "alarms"),  # 임시 비활성화 (추후 재사용 예정, 코드는 유지)
     ("📂  엑셀 가져오기", "import"),
     ("⚙️  설정",          "settings"),
 ]

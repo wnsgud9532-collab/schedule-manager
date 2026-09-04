@@ -48,7 +48,7 @@ div[data-testid="stMetricValue"] {
 NAV_ITEMS = [
     ("🏠  대시보드",    "dashboard"),
     ("📅  월간 캘린더", "monthly"),
-    ("🔔  알람 설정",   "alarms"),
+    # ("🔔  알람 설정",   "alarms"),  # 임시 비활성화 (추후 재사용 예정, 코드는 유지)
     ("📂  엑셀 가져오기", "import"),
     ("⚙️  설정",        "settings"),
 ]
