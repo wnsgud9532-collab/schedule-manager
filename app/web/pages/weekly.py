@@ -212,8 +212,6 @@ def _edit_dialog():
 
 # ── 메인 렌더 ─────────────────────────────────────────────────────────
 def render():
-    st.markdown("## 📋 주간 근무표")
-
     today = today_kst()
     if "weekly_start" not in st.session_state:
         st.session_state.weekly_start = _week_monday(today)
@@ -221,13 +219,21 @@ def render():
     ws = st.session_state.weekly_start
     we = ws + timedelta(days=6)
 
-    # 모바일에서는 버튼/날짜 라벨을 데스크탑보다 훨씬 작고 조밀하게
-    # (기본 모바일 CSS는 버튼을 세로로 꽉 채워 쌓아서 표가 아래로 밀려나므로,
-    #  이 두 영역만 한 줄(넘치면 자동 줄바꿈)에 붙는 컴팩트한 크기로 오버라이드)
+    # 모바일에서는 제목/버튼/날짜 라벨 영역을 데스크탑보다 훨씬 작고 조밀하게
+    # (기본 모바일 CSS는 버튼을 세로로 꽉 채워 쌓고 요소 사이 간격도 넓어서
+    #  표가 첫 화면 아래로 밀려나므로, 이 영역(.st-key-weekly_top) 전체를
+    #  컴팩트한 크기 + 좁은 간격 + 한 줄(넘치면 자동 줄바꿈)로 오버라이드)
     st.markdown(
         """
 <style>
 @media (max-width: 640px) {
+    .st-key-weekly_top [data-testid="stVerticalBlock"] {
+        gap: 0.3rem !important;
+    }
+    .st-key-weekly_top h2 {
+        font-size: 1.15rem !important;
+        margin: 0 !important;
+    }
     .st-key-weekly_nav_edit [data-testid="stHorizontalBlock"],
     .st-key-weekly_nav_dates [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
@@ -246,9 +252,9 @@ def render():
     }
     .st-key-weekly_nav_edit .stButton > button,
     .st-key-weekly_nav_dates .stButton > button {
-        min-height: 2rem !important;
+        min-height: 1.9rem !important;
         font-size: 0.72rem !important;
-        padding: 0.2rem 0.55rem !important;
+        padding: 0.15rem 0.5rem !important;
         white-space: nowrap !important;
     }
     .st-key-weekly_nav_dates h4 {
@@ -263,37 +269,40 @@ def render():
         unsafe_allow_html=True,
     )
 
-    # ── 근무 수정 버튼 ───────────────────────────────────────────────
-    with st.container(key="weekly_nav_edit"):
-        top_l, top_r = st.columns([5, 1.4])
-        with top_r:
-            if st.button("✏️ 근무 수정", use_container_width=True, key="open_edit_dialog"):
-                _edit_dialog()
+    with st.container(key="weekly_top"):
+        st.markdown("## 📋 주간 근무표")
 
-    # ── 내비게이션 ─────────────────────────────────────────────────────
-    with st.container(key="weekly_nav_dates"):
-        n1, n2, n3, n4 = st.columns([1.3, 3, 1.3, 1.3])
-        with n1:
-            if st.button("← 이전 주", use_container_width=True, key="week_prev"):
-                st.session_state.weekly_start -= timedelta(weeks=1)
-                st.rerun()
-        with n2:
-            if ws.month == we.month:
-                label = f"{ws.year}년 {ws.month}월 {ws.day}일 ~ {we.day}일"
-            else:
-                label = f"{ws.year}년 {ws.month}월 {ws.day}일 ~ {we.month}월 {we.day}일"
-            st.markdown(
-                f"<h4 style='margin:0;padding-top:8px;text-align:center;'>{label}</h4>",
-                unsafe_allow_html=True,
-            )
-        with n3:
-            if st.button("이번 주", use_container_width=True, key="week_this"):
-                st.session_state.weekly_start = _week_monday(today)
-                st.rerun()
-        with n4:
-            if st.button("다음 주 →", use_container_width=True, key="week_next"):
-                st.session_state.weekly_start += timedelta(weeks=1)
-                st.rerun()
+        # ── 근무 수정 버튼 ───────────────────────────────────────────
+        with st.container(key="weekly_nav_edit"):
+            top_l, top_r = st.columns([5, 1.4])
+            with top_r:
+                if st.button("✏️ 근무 수정", use_container_width=True, key="open_edit_dialog"):
+                    _edit_dialog()
+
+        # ── 내비게이션 ───────────────────────────────────────────────
+        with st.container(key="weekly_nav_dates"):
+            n1, n2, n3, n4 = st.columns([1.3, 3, 1.3, 1.3])
+            with n1:
+                if st.button("← 이전 주", use_container_width=True, key="week_prev"):
+                    st.session_state.weekly_start -= timedelta(weeks=1)
+                    st.rerun()
+            with n2:
+                if ws.month == we.month:
+                    label = f"{ws.year}년 {ws.month}월 {ws.day}일 ~ {we.day}일"
+                else:
+                    label = f"{ws.year}년 {ws.month}월 {ws.day}일 ~ {we.month}월 {we.day}일"
+                st.markdown(
+                    f"<h4 style='margin:0;padding-top:8px;text-align:center;'>{label}</h4>",
+                    unsafe_allow_html=True,
+                )
+            with n3:
+                if st.button("이번 주", use_container_width=True, key="week_this"):
+                    st.session_state.weekly_start = _week_monday(today)
+                    st.rerun()
+            with n4:
+                if st.button("다음 주 →", use_container_width=True, key="week_next"):
+                    st.session_state.weekly_start += timedelta(weeks=1)
+                    st.rerun()
 
     days = [ws + timedelta(days=i) for i in range(7)]
 
