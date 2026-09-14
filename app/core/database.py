@@ -4,7 +4,6 @@ import sys
 from datetime import date, time, datetime
 from typing import List, Optional, Tuple
 from app.models.schedule import Employee, Shift
-from app.core import cloud_backup
 
 def _get_app_root() -> str:
     if getattr(sys, 'frozen', False):
@@ -58,57 +57,6 @@ def initialize_db():
                 conn.execute(f"ALTER TABLE shifts ADD COLUMN {col} TEXT")
             except Exception:
                 pass
-    restore_from_cloud_if_empty()
-
-
-def export_snapshot() -> dict:
-    """전체 DB 내용을 dict로 직렬화 (구글 시트 백업용)."""
-    with get_connection() as conn:
-        employees = [dict(r) for r in conn.execute("SELECT * FROM employees")]
-        shifts = [dict(r) for r in conn.execute("SELECT * FROM shifts")]
-        settings = [dict(r) for r in conn.execute("SELECT * FROM settings")]
-    return {"employees": employees, "shifts": shifts, "settings": settings}
-
-
-def import_snapshot(data: dict):
-    """백업 dict로 로컬 DB를 덮어씀."""
-    with get_connection() as conn:
-        conn.execute("DELETE FROM shifts")
-        conn.execute("DELETE FROM employees")
-        conn.execute("DELETE FROM settings")
-        for e in data.get("employees", []):
-            conn.execute("INSERT INTO employees (id, name) VALUES (?, ?)", (e["id"], e["name"]))
-        for s in data.get("shifts", []):
-            conn.execute(
-                "INSERT INTO shifts (id, employee_id, shift_date, start_time, end_time, note, "
-                "original_start_time, original_end_time) VALUES (?,?,?,?,?,?,?,?)",
-                (s["id"], s["employee_id"], s["shift_date"], s["start_time"], s["end_time"],
-                 s.get("note", ""), s.get("original_start_time"), s.get("original_end_time")),
-            )
-        for row in data.get("settings", []):
-            conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (row["key"], row["value"]))
-
-
-def _backup_to_cloud():
-    """DB 변경 후 구글 시트로 자동 백업. 네트워크/권한 오류는 조용히 무시(앱 동작에 영향 없음)."""
-    try:
-        cloud_backup.save_backup(export_snapshot())
-    except Exception:
-        pass
-
-
-def restore_from_cloud_if_empty():
-    """로컬 DB가 비어있으면(앱 재시작 등으로 초기화된 경우) 구글 시트 백업에서 자동 복원."""
-    with get_connection() as conn:
-        n = conn.execute("SELECT COUNT(*) AS n FROM shifts").fetchone()["n"]
-    if n > 0:
-        return
-    try:
-        data = cloud_backup.load_backup()
-        if data and data.get("shifts"):
-            import_snapshot(data)
-    except Exception:
-        pass
 
 
 def _upsert_employee_conn(conn: sqlite3.Connection, name: str) -> int:
@@ -131,14 +79,12 @@ def insert_shifts_bulk(shifts: List[Shift]):
                 (emp_id, shift.date.isoformat(), shift.start_time.strftime("%H:%M"),
                  shift.end_time.strftime("%H:%M"), shift.note)
             )
-    _backup_to_cloud()
 
 
 def delete_shifts_for_month(year: int, month: int):
     prefix = f"{year}-{month:02d}"
     with get_connection() as conn:
         conn.execute("DELETE FROM shifts WHERE shift_date LIKE ?", (f"{prefix}%",))
-    _backup_to_cloud()
 
 
 def get_shifts_for_date(target_date: date) -> List[Shift]:
@@ -194,7 +140,6 @@ def get_setting(key: str, default: str = "") -> str:
 def set_setting(key: str, value: str):
     with get_connection() as conn:
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
-    _backup_to_cloud()
 
 
 def update_shift(shift_id: int, start_time: time, end_time: time, note: str):
@@ -213,7 +158,6 @@ def update_shift(shift_id: int, start_time: time, end_time: time, note: str):
             "UPDATE shifts SET start_time=?, end_time=?, note=? WHERE id=?",
             (start_time.strftime("%H:%M"), end_time.strftime("%H:%M"), note, shift_id),
         )
-    _backup_to_cloud()
 
 
 def restore_shift_original(shift_id: int) -> bool:
@@ -223,16 +167,14 @@ def restore_shift_original(shift_id: int) -> bool:
             "SELECT original_start_time, original_end_time FROM shifts WHERE id=?",
             (shift_id,),
         ).fetchone()
-        restored = bool(row and row["original_start_time"])
-        if restored:
+        if row and row["original_start_time"]:
             conn.execute(
                 "UPDATE shifts SET start_time=?, end_time=?, note='', "
                 "original_start_time=NULL, original_end_time=NULL WHERE id=?",
                 (row["original_start_time"], row["original_end_time"], shift_id),
             )
-    if restored:
-        _backup_to_cloud()
-    return restored
+            return True
+        return False
 
 
 def has_original(shift_id: int) -> bool:
@@ -264,10 +206,7 @@ def restore_all_originals() -> int:
                 original_end_time   = NULL
             WHERE original_start_time IS NOT NULL
         """)
-        n = conn.execute("SELECT changes() as n").fetchone()["n"]
-    if n:
-        _backup_to_cloud()
-    return n
+        return conn.execute("SELECT changes() as n").fetchone()["n"]
 
 
 def get_modified_shifts() -> List[dict]:
@@ -308,7 +247,6 @@ def delete_shift(shift_id: int):
                 (row["start_time"], row["end_time"], shift_id),
             )
         conn.execute("UPDATE shifts SET note='삭제' WHERE id=?", (shift_id,))
-    _backup_to_cloud()
 
 
 def _row_to_shift(row) -> Shift:
