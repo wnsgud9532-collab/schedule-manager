@@ -8,7 +8,8 @@ from pathlib import Path
 
 SHEET_ID = '1FkApqvnGIjdD7iRRs933YPNGQHZlhZ2Uw8ytUYS53uI'
 _CRED_FILE = Path(__file__).parent.parent.parent / 'service-account.json'
-_SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+# 쓰기 스코프 (엑셀 DB 자동 백업용으로 확장 — 시트에 서비스 계정이 '편집자'로 공유되어 있어야 함)
+_SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 _CACHE: dict = {'data': None, 'ts': 0.0}
 _CACHE_TTL = 30  # seconds
