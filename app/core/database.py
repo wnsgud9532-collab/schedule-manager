@@ -15,8 +15,12 @@ DB_PATH = os.path.join(_get_app_root(), "data", "schedule.db")
 
 
 def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    # timeout: 다른 세션이 쓰기 중이면 즉시 에러 대신 최대 10초 대기 후 재시도
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    # WAL 모드: 여러 사용자가 동시에 읽기/쓰기를 해도 "database is locked" 에러가 크게 줄어듦
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
     return conn
 
 
